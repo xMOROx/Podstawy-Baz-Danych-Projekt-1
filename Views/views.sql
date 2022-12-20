@@ -1,236 +1,236 @@
 -- Current menu view --
 
-create view dbo.CurrentMenu as
-    select MenuID, Price, Name, Description from Menu inner join Products P on P.ProductID = Menu.ProductID
-    where ((getdate() >= startDate) and (getdate() <= endDate)) or ((getdate() >= startDate) and endDate is null) ;
-go
+CREATE VIEW dbo.CurrentMenu AS
+    SELECT MenuID, Price, Name, Description FROM Menu INNER JOIN Products P ON P.ProductID = Menu.ProductID
+    WHERE ((GETDATE() >= startDate) AND (GETDATE() <= endDate)) OR ((GETDATE() >= startDate) AND endDate IS NULL) ;
+GO
 -- Current menu view --
 
 
--- Current reservation vars --
+-- Current Reservation vars --
 
-create view dbo.CurrentReservationVars as
-    select WZ as [Minimalna liczba zamowien], WK as [Minimalna kwota dla zamowienia], startDate, isnull(convert(varchar(20), endDate, 120), 'Obowiązuje zawsze') as 'Koniec menu'
-    from ReservationVar
-    where ((getdate() >= startDate) and (getdate() <= endDate)) or ((getdate() >= startDate) and endDate is null);
-go
+CREATE VIEW dbo.CurrentReservationVars AS
+    SELECT WZ AS [Minimalna liczba zamowien], WK AS [Minimalna kwota dla zamowienia], startDate, ISNULL(CONVERT(VARCHAR(20), endDate, 120), 'Obowiązuje zawsze') AS 'Koniec menu'
+    FROM ReservationVar
+    WHERE ((GETDATE() >= startDate) AND (GETDATE() <= endDate)) OR ((GETDATE() >= startDate) AND endDate IS NULL);
+GO
+-- Current Reservation vars --
 
 -- unpaid invoices  Individuals--
 
-create view dbo.unPaidInvoicesIndividuals as
-    select  InvoiceNumber as [Numer faktury], InvoiceDate as [Data wystawienia],
-            DueDate as [Data terminu zaplaty], concat(LastName, ' ',FirstName) as [Dane],
-            Phone, Email, concat(CityName, ' ',street,' ', LocalNr) as [Adres], PostalCode
-    from Invoice
-        inner join Clients C on C.ClientID = Invoice.ClientID
-        inner join Address A on C.AddressID = A.AddressID
-        inner join IndividualClient IC on C.ClientID = IC.ClientID
-        inner join Person P on P.PersonID = IC.PersonID
-        inner join Cities C2 on C2.CityID = A.CityID
-        inner join PaymentStatus PS on Invoice.PaymentStatusID = PS.PaymentStatusID
-    where PaymentStatusName like 'Unpaid'; -- system will change status
-go
+CREATE VIEW dbo.unPaidInvoicesIndividuals AS
+    SELECT  InvoiceNumber AS [Numer faktury], InvoiceDate AS [Data wystawienia],
+            DueDate AS [Data terminu zaplaty], CONCAT(LastName, ' ',FirstName) AS [Dane],
+            Phone, Email, CONCAT(CityName, ' ',street,' ', LocalNr) AS [Adres], PostalCode
+    FROM Invoice
+        INNER JOIN Clients C ON C.ClientID = Invoice.ClientID
+        INNER JOIN Address A ON C.AddressID = A.AddressID
+        INNER JOIN IndividualClient IC ON C.ClientID = IC.ClientID
+        INNER JOIN PersON P ON P.PersONID = IC.PersONID
+        INNER JOIN Cities C2 ON C2.CityID = A.CityID
+        INNER JOIN PaymentStatus PS ON Invoice.PaymentStatusID = PS.PaymentStatusID
+    WHERE PaymentStatusName LIKE 'Unpaid'; -- system will change status
+GO
 -- unpaid invoices  Individuals--
 
 -- unpaid invoices  Company--
 
-create view dbo.unPaidInvoicesCompanies as
-    select  InvoiceNumber as [Numer faktury], InvoiceDate as [Data wystawienia],
-            DueDate as [Data terminu zaplaty], CompanyName, NIP, isnull(KRS, 'Brak') as [KRS], isnull(Regon, 'Brak') as [Regon],
-            Phone, Email, concat(CityName, ' ',street,' ', LocalNr) as [Adres], PostalCode
-    from Invoice
-        inner join Clients C on C.ClientID = Invoice.ClientID
-        inner join Companies CO on CO.ClientID = C.ClientID
-        inner join Address A on C.AddressID = A.AddressID
-        inner join Cities C2 on C2.CityID = A.CityID
-        inner join PaymentStatus PS on Invoice.PaymentStatusID = PS.PaymentStatusID
-    where (PaymentStatusName like 'Unpaid');
-go
+CREATE VIEW dbo.unPaidInvoicesCompanies AS
+    SELECT  InvoiceNumber AS [Numer faktury], InvoiceDate AS [Data wystawienia],
+            DueDate AS [Data terminu zaplaty], CompanyName, NIP, ISNULL(KRS, 'Brak') AS [KRS], ISNULL(Regon, 'Brak') AS [Regon],
+            Phone, Email, CONCAT(CityName, ' ',street,' ', LocalNr) AS [Adres], PostalCode
+    FROM Invoice
+        INNER JOIN Clients C ON C.ClientID = Invoice.ClientID
+        INNER JOIN Companies CO ON CO.ClientID = C.ClientID
+        INNER JOIN Address A ON C.AddressID = A.AddressID
+        INNER JOIN Cities C2 ON C2.CityID = A.CityID
+        INNER JOIN PaymentStatus PS ON Invoice.PaymentStatusID = PS.PaymentStatusID
+    WHERE (PaymentStatusName LIKE 'Unpaid');
+GO
 -- unpaid invoices  Company--
 
 -- withdrawn products --
 
-create view dbo.withdrawnProducts as
-    select Name, P.Description, C.CategoryName from Products P
-        inner join Category C on C.CategoryID = P.CategoryID where P.IsAvailable = 0
-go
-
+CREATE VIEW dbo.withdrawnProducts AS
+    SELECT Name, P.Description, C.CategoryName FROM Products P
+        INNER JOIN Category C ON C.CategoryID = P.CategoryID WHERE P.IsAvailable = 0
+GO
 -- withdrawn products --
 
 -- active products --
-create view dbo.ActiveProducts as
-    select Name, P.Description, C.CategoryName from Products P
-        inner join Category C on C.CategoryID = P.CategoryID where P.IsAvailable = 1
-go
+
+CREATE VIEW dbo.ActiveProducts AS
+    SELECT Name, P.Description, C.CategoryName FROM Products P
+        INNER JOIN Category C ON C.CategoryID = P.CategoryID WHERE P.IsAvailable = 1
+GO
 -- active products --
 
 -- Active Tables --
 -- dostępne dla klientów --
 
-create view dbo.ActiveTables as
-    select TableID, ChairAmount from Tables
-        where isActive = 1
-go
-
+CREATE VIEW dbo.ActiveTables AS
+    SELECT TableID, ChairAmount FROM Tables
+        WHERE IsActive = 1
+GO
 -- Active Tables --
 
 -- Not reserved Tables --
 
-create view dbo.[Not reserved Tables] as
-    select TableID, ChairAmount
-    from Tables
-        where TableID not in(select ReservationDetails.TableID
-            from ReservationDetails
-                inner join ReservationCompany RC on RC.ReservationID = ReservationDetails.ReservationID
-                inner join Reservation R2 on RC.ReservationID = R2.ReservationID
-            where (getdate() >= startDate) and (getdate() <= endDate) and (Status not like 'cancelled' and Status not like 'denied') and isActive = 1)
-union
-    select TableID, ChairAmount
-    from Tables
-        where TableID not in(select ReservationDetails.TableID
-            from ReservationDetails
-                inner join ReservationIndividual RC on RC.ReservationID = ReservationDetails.ReservationID
-                inner join Reservation R2 on RC.ReservationID = R2.ReservationID
-            where (getdate() >= startDate) and (getdate() <= endDate) and (Status not like 'cancelled' and Status not like 'denied') and isActive = 1)
-go
+CREATE VIEW dbo.[Not reserved Tables] AS
+    SELECT TableID, ChairAmount
+    FROM Tables
+        WHERE TableID NOT IN(SELECT ReservationDetails.TableID
+            FROM ReservationDetails
+                INNER JOIN ReservationCompany RC ON RC.ReservationID = ReservationDetails.ReservationID
+                INNER JOIN Reservation R2 ON RC.ReservationID = R2.ReservationID
+            WHERE (GETDATE() >= startDate) AND (GETDATE() <= endDate) AND (Status NOT LIKE 'cancelled' AND Status NOT LIKE 'denied') AND IsActive = 1)
+UNION
+    SELECT TableID, ChairAmount
+    FROM Tables
+        WHERE TableID NOT IN(SELECT ReservationDetails.TableID
+            FROM ReservationDetails
+                INNER JOIN ReservationIndividual RC ON RC.ReservationID = ReservationDetails.ReservationID
+                INNER JOIN Reservation R2 ON RC.ReservationID = R2.ReservationID
+            WHERE (GETDATE() >= startDate) AND (GETDATE() <= endDate) AND (Status NOT LIKE 'cancelled' AND Status NOT LIKE 'denied') AND IsActive = 1)
+GO
 -- Not reserved Tables --
 
--- weekly raport about tables --
+-- weekly report about tables --
 
 CREATE VIEW dbo.TablesWeekly AS
-    SELECT YEAR(R2.StartDate) as year,
-        DATEPART(iso_week, R2.StartDate) as week,
-        T.TableID as table_id,
-        T.ChairAmount as table_size,
-        COUNT(RD.TableID) as how_many_times_reserved
+    SELECT YEAR(R2.StartDate) AS year,
+        DATEPART(ISo_week, R2.StartDate) AS week,
+        T.TableID AS table_id,
+        T.ChairAmount AS table_size,
+        COUNT(RD.TableID) AS how_many_times_reserved
     FROM Tables T
-        INNER JOIN ReservationDetails RD on T.TableID = RD.TableID
-        inner join ReservationIndividual RI on RI.ReservationID = RD.ReservationID
-        INNER JOIN Reservation R2 on RD.ReservationID = R2.ReservationID
-    WHERE (Status NOT LIKE 'cancelled' and Status NOT LIKE 'denied')
-    GROUP BY YEAR(R2.StartDate), DATEPART(iso_week, R2.StartDate), T.TableID, T.ChairAmount
-union
-    SELECT YEAR(R2.StartDate) as year,
-        DATEPART(iso_week , R2.StartDate) as week,
-        T.TableID as table_id,
-        T.ChairAmount as table_size,
-        COUNT(RD.TableID) as how_many_times_reserved
+        INNER JOIN ReservationDetails RD ON T.TableID = RD.TableID
+        INNER JOIN ReservationIndividual RI ON RI.ReservationID = RD.ReservationID
+        INNER JOIN Reservation R2 ON RD.ReservationID = R2.ReservationID
+    WHERE (Status NOT LIKE 'cancelled' AND Status NOT LIKE 'denied')
+    GROUP BY YEAR(R2.StartDate), DATEPART(ISo_week, R2.StartDate), T.TableID, T.ChairAmount
+UNION
+    SELECT YEAR(R2.StartDate) AS year,
+        DATEPART(ISo_week , R2.StartDate) AS week,
+        T.TableID AS table_id,
+        T.ChairAmount AS table_size,
+        COUNT(RD.TableID) AS how_many_times_reserved
     FROM Tables T
-        INNER JOIN ReservationDetails RD on T.TableID = RD.TableID
-        inner join ReservationCompany RI on RI.ReservationID = RD.ReservationID
-        INNER JOIN Reservation R2 on RD.ReservationID = R2.ReservationID
-    WHERE (Status NOT LIKE 'cancelled' and Status NOT LIKE 'denied')
-    GROUP BY YEAR(R2.StartDate), DATEPART(iso_week, R2.StartDate), T.TableID, T.ChairAmount
-go
--- weekly raport about tables --
+        INNER JOIN ReservationDetails RD ON T.TableID = RD.TableID
+        INNER JOIN ReservationCompany RI ON RI.ReservationID = RD.ReservationID
+        INNER JOIN Reservation R2 ON RD.ReservationID = R2.ReservationID
+    WHERE (Status NOT LIKE 'cancelled' AND Status NOT LIKE 'denied')
+    GROUP BY YEAR(R2.StartDate), DATEPART(ISo_week, R2.StartDate), T.TableID, T.ChairAmount
+GO
+-- weekly report about tables --
 
--- monthly raport about tables --
+-- Monthly report about tables --
 
 CREATE VIEW dbo.TablesMonthly AS
-    SELECT YEAR(R2.StartDate) as year,
-        DATEPART(month , R2.StartDate) as month,
-        T.TableID as table_id,
-        T.ChairAmount as table_size,
-        COUNT(RD.TableID) as how_many_times_reserved
+    SELECT YEAR(R2.StartDate) AS year,
+        DATEPART(mONth , R2.StartDate) AS mONth,
+        T.TableID AS table_id,
+        T.ChairAmount AS table_size,
+        COUNT(RD.TableID) AS how_many_times_reserved
     FROM Tables T
-        INNER JOIN ReservationDetails RD on T.TableID = RD.TableID
-        inner join ReservationIndividual RI on RI.ReservationID = RD.ReservationID
-        INNER JOIN Reservation R2 on RD.ReservationID = R2.ReservationID
-    WHERE (Status not like 'cancelled' and Status not like 'denied')
-    GROUP BY YEAR(R2.StartDate), DATEPART(month, R2.StartDate), T.TableID, T.ChairAmount
+        INNER JOIN ReservationDetails RD ON T.TableID = RD.TableID
+        INNER JOIN ReservationIndividual RI ON RI.ReservationID = RD.ReservationID
+        INNER JOIN Reservation R2 ON RD.ReservationID = R2.ReservationID
+    WHERE (Status NOT LIKE 'cancelled' AND Status NOT LIKE 'denied')
+    GROUP BY YEAR(R2.StartDate), DATEPART(mONth, R2.StartDate), T.TableID, T.ChairAmount
 UNION
-    SELECT YEAR(R2.StartDate) as year,
-        DATEPART(month, R2.StartDate) as month,
-        T.TableID as table_id,
-        T.ChairAmount as table_size,
-        COUNT(RD.TableID) as how_many_times_reserved
+    SELECT YEAR(R2.StartDate) AS year,
+        DATEPART(mONth, R2.StartDate) AS mONth,
+        T.TableID AS table_id,
+        T.ChairAmount AS table_size,
+        COUNT(RD.TableID) AS how_many_times_reserved
     FROM Tables T
-        INNER JOIN ReservationDetails RD on T.TableID = RD.TableID
-        inner join ReservationCompany RI on RI.ReservationID = RD.ReservationID
-        INNER JOIN Reservation R2 on RD.ReservationID = R2.ReservationID
-    WHERE (Status not like 'cancelled' and Status not like 'denied')
-    GROUP BY YEAR(R2.StartDate), DATEPART(month, R2.StartDate), T.TableID, T.ChairAmount
-go
+        INNER JOIN ReservationDetails RD ON T.TableID = RD.TableID
+        INNER JOIN ReservationCompany RI ON RI.ReservationID = RD.ReservationID
+        INNER JOIN Reservation R2 ON RD.ReservationID = R2.ReservationID
+    WHERE (Status NOT LIKE 'cancelled' AND Status NOT LIKE 'denied')
+    GROUP BY YEAR(R2.StartDate), DATEPART(mONth, R2.StartDate), T.TableID, T.ChairAmount
+GO
 
--- monthly raport about tables --
+-- Monthly report about tables --
 
--- takeaway orders not picked Individuals--
+-- takeaway Orders not picked Individuals--
 
-create view dbo.[takeaways orders not picked Individuals] as
-    select PrefDate as [Data odbioru], concat(LastName, ' ',FirstName) as [Dane],
-           Phone, Email, concat(CityName, ' ',street,' ', LocalNr) as [Adres], PostalCode,
+CREATE VIEW dbo.[takeaways Orders not picked Individuals] AS
+    SELECT PrefDate AS [Data odbioru], CONCAT(LastName, ' ',FirstName) AS [Dane],
+           Phone, Email, CONCAT(CityName, ' ',street,' ', LocalNr) AS [Adres], PostalCode,
             OrderID, OrderDate, OrderCompletionDate, OrderSum
-        from OrdersTakeaways OT
-            inner join Orders O on OT.TakeawaysID = O.TakeawayID
-            inner join Clients C on O.ClientID = C.ClientID
-            inner join IndividualClient IC on C.ClientID = IC.ClientID
-            inner join Person P on IC.PersonID = P.PersonID
-            inner join Address A on C.AddressID = A.AddressID
-            inner join Cities C2 on A.CityID = C2.CityID
-        where OrderStatus like 'Completed' 
-go
--- takeaways orders not picked Individuals--
+        FROM OrdersTakeaways OT
+            INNER JOIN Orders O ON OT.TakeawaysID = O.TakeawayID
+            INNER JOIN Clients C ON O.ClientID = C.ClientID
+            INNER JOIN IndividualClient IC ON C.ClientID = IC.ClientID
+            INNER JOIN PersON P ON IC.PersONID = P.PersONID
+            INNER JOIN Address A ON C.AddressID = A.AddressID
+            INNER JOIN Cities C2 ON A.CityID = C2.CityID
+        WHERE OrderStatus LIKE 'Completed' 
+GO
+-- takeaways Orders not picked Individuals--
 
--- takeaways orders not picked Companies--
+-- takeaways Orders not picked Companies--
 
-create view dbo.[takeaways orders not picked Companies] as
-    select PrefDate as [Data odbioru], CompanyName, NIP, isnull(KRS, 'Brak') as [KRS], isnull(Regon, 'Brak') as [Regon],
-           Phone, Email, concat(CityName, ' ',street,' ', LocalNr) as [Adres], PostalCode,
+CREATE VIEW dbo.[takeaways Orders not picked Companies] AS
+    SELECT PrefDate AS [Data odbioru], CompanyName, NIP, ISNULL(KRS, 'Brak') AS [KRS], ISNULL(ReonN, 'Brak') AS [ReonN],
+           Phone, Email, CONCAT(CityName, ' ',street,' ', LocalNr) AS [Adres], PostalCode,
             OrderID, OrderDate, OrderCompletionDate, OrderSum
-    from OrdersTakeaways OT
-        inner join Orders O on OT.TakeawaysID = O.TakeawayID
-        inner join Clients C on O.ClientID = C.ClientID
-        inner join Companies CO on C.ClientID = CO.ClientID
-        inner join Address A on C.AddressID = A.AddressID
-        inner join Cities C2 on A.CityID = C2.CityID
-    where OrderStatus like 'Completed' 
-go
--- takeaways orders not picked Companies--
+    FROM OrdersTakeaways OT
+        INNER JOIN Orders O ON OT.TakeawaysID = O.TakeawayID
+        INNER JOIN Clients C ON O.ClientID = C.ClientID
+        INNER JOIN Companies CO ON C.ClientID = CO.ClientID
+        INNER JOIN Address A ON C.AddressID = A.AddressID
+        INNER JOIN Cities C2 ON A.CityID = C2.CityID
+    WHERE OrderStatus LIKE 'Completed' 
+GO
+-- takeaways Orders not picked Companies--
 
 
--- takeaway orders  Individuals--
+-- takeaway Orders  Individuals--
 
-create view dbo.[takeaways orders Individuals] as
-    select PrefDate as [Data odbioru], concat(LastName, ' ',FirstName) as [Dane],
-           Phone, Email, concat(CityName, ' ',street,' ', LocalNr) as [Adres], PostalCode,
+CREATE VIEW dbo.[takeaways Orders Individuals] AS
+    SELECT PrefDate AS [Data odbiORu], CONCAT(LastName, ' ',FirstName) AS [Dane],
+           Phone, Email, CONCAT(CityName, ' ',street,' ', LocalNr) AS [Adres], PostalCode,
            OrderID, OrderDate, OrderCompletionDate, OrderStatus, OrderSum
-    from OrdersTakeaways OT
-        inner join Orders O on OT.TakeawaysID = O.TakeawayID
-        inner join Clients C on O.ClientID = C.ClientID
-        inner join IndividualClient IC on C.ClientID = IC.ClientID
-        inner join Person P on IC.PersonID = P.PersonID
-        inner join Address A on C.AddressID = A.AddressID
-        inner join Cities C2 on A.CityID = C2.CityID
-    where (((getdate() >= OrderDate) and (getdate() <= OrderCompletionDate)) or (OrderCompletionDate is null and (getdate() >= OrderDate)))
-go
--- takeaways orders  Individuals--
+    FROM OrdersTakeaways OT
+        INNER JOIN Orders O ON OT.TakeawaysID = O.TakeawayID
+        INNER JOIN Clients C ON O.ClientID = C.ClientID
+        INNER JOIN IndividualClient IC ON C.ClientID = IC.ClientID
+        INNER JOIN PersON P ON IC.PersONID = P.PersONID
+        INNER JOIN Address A ON C.AddressID = A.AddressID
+        INNER JOIN Cities C2 ON A.CityID = C2.CityID
+    WHERE (((GETDATE() >= OrderDate) AND (GETDATE() <= OrderCompletionDate)) OR (OrderCompletionDate IS NULL AND (GETDATE() >= OrderDate)))
+GO
+-- takeaways Orders  Individuals--
 
 
--- takeaways orders companies --
+-- takeaways Orders companies --
 
-create view dbo.[takeaways orders companies] as
-    select PrefDate as [Data odbioru], CompanyName, NIP, isnull(KRS, 'Brak') as [KRS], isnull(Regon, 'Brak') as [Regon],
-           Phone, Email, concat(CityName, ' ',street,' ', LocalNr) as [Adres], PostalCode,
+CREATE VIEW dbo.[takeaways Orders companies] AS
+    SELECT PrefDate AS [Data odbiORu], CompanyName, NIP, ISNULL(KRS, 'Brak') AS [KRS], ISNULL(ReGON, 'Brak') AS [ReGON],
+           Phone, Email, CONCAT(CityName, ' ',street,' ', LocalNr) AS [Adres], PostalCode,
             OrderID, OrderDate, OrderCompletionDate, OrderStatus, OrderSum
-    from OrdersTakeaways OT
-        inner join Orders O on OT.TakeawaysID = O.TakeawayID
-        inner join Clients C on O.ClientID = C.ClientID
-        inner join Companies CO on C.ClientID = CO.ClientID
-        inner join Address A on C.AddressID = A.AddressID
-        inner join Cities C2 on A.CityID = C2.CityID
-    where (((getdate() >= OrderDate) and (getdate() <= OrderCompletionDate)) or (OrderCompletionDate is null and (getdate() >= OrderDate)))
-go
+    FROM OrdersTakeaways OT
+        INNER JOIN Orders O ON OT.TakeawaysID = O.TakeawayID
+        INNER JOIN Clients C ON O.ClientID = C.ClientID
+        INNER JOIN Companies CO ON C.ClientID = CO.ClientID
+        INNER JOIN Address A ON C.AddressID = A.AddressID
+        INNER JOIN Cities C2 ON A.CityID = C2.CityID
+    WHERE (((GETDATE() >= OrderDate) AND (GETDATE() <= OrderCompletionDate)) OR (OrderCompletionDate IS NULL AND (GETDATE() >= OrderDate)))
+GO
 
--- takeaways orders companies --
+-- takeaways Orders companies --
 
 -- ReservationInfo --
 
 CREATE VIEW ReservationInfo AS
     SELECT R.ReservationID, TableID, StartDate, EndDate
     FROM Reservation R
-        LEFT OUTER JOIN ReservationDetails RD on RD.ReservationID = R.ReservationID
+        LEFT OUTER JOIN ReservationDetails RD ON RD.ReservationID = R.ReservationID
     WHERE Status NOT LIKE 'Cancelled'
-go
+GO
 
 -- ReservationInfo --
 -- ReservationDenied --
@@ -238,10 +238,10 @@ go
 CREATE VIEW ReservationDenied AS
     SELECT R.ReservationID, TableID, ClientID, StartDate, EndDate
     FROM Reservation R
-        LEFT OUTER JOIN ReservationDetails RD on RD.ReservationID = R.ReservationID
-        INNER JOIN Orders O on O.ReservationID = R.ReservationID
+        LEFT OUTER JOIN ReservationDetails RD ON RD.ReservationID = R.ReservationID
+        INNER JOIN Orders O ON O.ReservationID = R.ReservationID
     WHERE Status LIKE 'denied'
-go
+GO
 
 -- ReservationDenied --
 
@@ -251,41 +251,41 @@ CREATE VIEW dbo.PendingReservations AS
     SELECT R.ReservationID, startDate, endDate,
            OrderID, OrderSum
     FROM Reservation R
-        inner join Orders O on R.ReservationID = O.ReservationID
+        INNER JOIN Orders O ON R.ReservationID = O.ReservationID
     WHERE Status LIKE 'Pending'
-go
+GO
 -- PendingReservation --
 
---Orders report (wyświetlanie ilości zamówień oraz ich wartości w okresach czasowych)
-CREATE VIEW dbo.ordersReport AS
+--Orders repORt (wyświetlanie ilości zamówień ORaz ich wartości w okresach czASowych)
+CREATE VIEW dbo.OrdersRepORt AS
     SELECT
-        isnull(convert(varchar(50), YEAR(O.OrderDate), 120), 'Podsumowanie po latach') AS [Year],
-        isnull(convert(varchar(50),  MONTH(O.OrderDate), 120), 'Podsumowanie miesiaca') AS [Month],
-        isnull(convert(varchar(50),  DATEPART(iso_week , O.OrderDate), 120), 'Podsumowanie tygodnia') AS [WEEK],
+        ISNULL(CONVERT(VARCHAR(50), YEAR(O.OrderDate), 120), 'Podsumowanie po latach') AS [Year],
+        ISNULL(CONVERT(VARCHAR(50),  MONTH(O.OrderDate), 120), 'Podsumowanie miesiaca') AS [MONth],
+        ISNULL(CONVERT(VARCHAR(50),  DATEPART(ISo_week , O.OrderDate), 120), 'Podsumowanie tyGOdnia') AS [WEEK],
         COUNT(O.OrderID) AS [ilość zamówień],
         SUM(O.OrderSum) AS [Suma przychodów]
     FROM Orders AS O
-    GROUP BY ROLLUP (YEAR(O.OrderDate), MONTH(O.OrderDate), DATEPART(iso_week, O.OrderDate))
+    GROUP BY ROLLUP (YEAR(O.OrderDate), MONTH(O.OrderDate), DATEPART(ISo_week, O.OrderDate))
 GO
---Orders report
+--Orders repORt
 
---individual clients expenses report (wyświetlanie wydanych kwot przez klientów indywidualnych w okresach czasowych)
-CREATE VIEW dbo.individualClientExpensesReport AS
+--individual clients expenses repORt (wyświetlanie wydanych kwot przez klientów indywidualnych w okresach czasowych)
+CREATE VIEW dbo.individualClientExpensesRepORt AS
     SELECT
          YEAR(O.OrderDate) AS [Year],
-        isnull(convert(varchar(50),  MONTH(O.OrderDate), 120), 'Podsumowanie miesiaca') AS [Month],
-        isnull(convert(varchar(50),  DATEPART(iso_week , O.OrderDate), 120), 'Podsumowanie tygodnia') AS [WEEK],
+        ISNULL(CONVERT(VARCHAR(50),  MONTH(O.OrderDate), 120), 'Podsumowanie miesiaca') AS [MONth],
+        ISNULL(CONVERT(VARCHAR(50),  DATEPART(ISo_week , O.OrderDate), 120), 'Podsumowanie tyGOdnia') AS [WEEK],
         C.ClientID,
-        CONCAT(P2.LastName, ' ',P2.FirstName) as [Dane],
+        CONCAT(P2.LastName, ' ',P2.FirstName) AS [Dane],
         C.Phone,
         C.Email,
-        concat(A.CityName, ' ',A.street,' ', A.LocalNr) as [Adres],
+        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) AS [Adres],
         A.PostalCode
         SUM(O.OrderSum) AS [wydane środki]
     FROM Orders AS O
         INNER JOIN Clients C ON C.ClientID = O.ClientID
         INNER JOIN IndividualClient IC ON IC.ClientID = C.ClientID
-        INNER JOIN Person P2 ON P2.PersonID = IC.PersonID
+        INNER JOIN PersON P2 ON P2.PersONID = IC.PersONID
         INNER JOIN Adress A ON A.AdressID = C.AdressID
     GROUP BY GROUPING SETS (
             (C.ClientID, YEAR(O.OrderDate), MONTH(O.OrderDate), DATEPART(week, O.OrderDate)),
@@ -293,10 +293,10 @@ CREATE VIEW dbo.individualClientExpensesReport AS
             (C.ClientID, YEAR(O.OrderDate))
         )
 GO
---individualClients expenses report
+--individualClients expenses repORt
 
---company expenses report (wyświetlanie wydanych kwot przez firmy w okresach czasowych)
-CREATE VIEW dbo.companyExpensesReport AS
+--company expenses repORt (wyświetlanie wydanych kwot przez firmy w okresach czASowych)
+CREATE VIEW dbo.companyExpensesRepORt AS
     SELECT
         YEAR(O.OrderDate) AS [Rok],
         MONTH(O.OrderDate) AS [Miesiąc],
@@ -304,11 +304,11 @@ CREATE VIEW dbo.companyExpensesReport AS
         C.ClientID,
         C2.CompanyName,
         C2.NIP,
-        ISNULL(cast(C2.KRS as varchar), 'Brak') as [KRS],
-        ISNULL(cast(C2.Regon as varchar), 'Brak') as [Regon],
+        ISNULL(cASt(C2.KRS AS VARCHAR), 'Brak') AS [KRS],
+        ISNULL(cASt(C2.ReGON AS VARCHAR), 'Brak') AS [ReGON],
         C.Phone,
         C.Email,
-        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) as [Adres],
+        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) AS [Adres],
         A.PostalCode,
         SUM(O.OrderSum) AS [wydane środki]
     FROM Orders AS O
@@ -321,9 +321,9 @@ CREATE VIEW dbo.companyExpensesReport AS
             (C.ClientID, YEAR(O.OrderDate))
         )
 GO
---company expenses report
+--company expenses repORt
 
---Number of individual clients (ilość klientów indywidualnych w okresach czasu)
+--Number of individual clients (ilość klientów indywidualnych w okresach czASu)
 CREATE VIEW dbo.numberOfIndividualClients AS
     SELECT
         YEAR(O.OrderDate) AS [Rok],
@@ -341,7 +341,7 @@ CREATE VIEW dbo.numberOfIndividualClients AS
 GO
 --Number of clients
 
---Number of companies (ilość firm w okresach czasu)
+--Number of companies (ilość firm w okresach czASu)
 CREATE VIEW dbo.numberOfCompanies AS
     SELECT
         YEAR(O.OrderDate) AS [Rok],
@@ -359,23 +359,23 @@ CREATE VIEW dbo.numberOfCompanies AS
 GO
 --Number of companies
 
---Number of orders individual client       (ilość zamówień złożonych przez klientów indywidualnych w okresach czasu)
+--Number of Orders individual client       (ilość zamówień złożONych przez klientów indywidualnych w okresach czASu)
 CREATE VIEW dbo.individualClientNumberOfOrders AS
     SELECT
         YEAR(O.OrderDate) AS [Rok],
         MONTH(O.OrderDate) AS [Miesiąc],
         DATEPART(week, O.OrderDate) AS [Tydzień],
         C.ClientID,
-        CONCAT(P2.LastName, ' ',P2.FirstName) as [Dane],
+        CONCAT(P2.LastName, ' ',P2.FirstName) AS [Dane],
         C.Phone,
         C.Email,
-        concat(A.CityName, ' ', A.street, ' ', A.LocalNr) as [Adres],
+        CONCAT(A.CityName, ' ', A.street, ' ', A.LocalNr) AS [Adres],
         A.PostalCode
-        COUNT(DISTINCT O.OrderID) AS [Ilość złożonych zamówień]
+        COUNT(DISTINCT O.OrderID) AS [Ilość złożONych zamówień]
     FROM Orders AS O
         INNER JOIN Client C ON C.OrderID = O.OrderID
         INNER JOIN IndividualClient IC ON IC.ClientID = C.ClientID
-        INNER JOIN Person P2 ON P2.PersonID = IC.PersonID
+        INNER JOIN PersON P2 ON P2.PersONID = IC.PersONID
         INNER JOIN Adress A ON A.AdressID = C.AdressID
     GROUP BY GROUPING SETS 
         (
@@ -384,9 +384,9 @@ CREATE VIEW dbo.individualClientNumberOfOrders AS
             (C.ClientID, YEAR(O.OrderDate))
         )
 GO
---Number of orders individual client
+--Number of Orders individual client
 
---Number of orders companies       (ilość zamówień złożonych przez firmy w okresach czasu)
+--Number of Orders companies       (ilość zamówień złożONych przez firmy w okresach czASu)
 CREATE VIEW dbo.companiesNumberOfOrders AS
     SELECT
         YEAR(O.OrderDate) AS [Rok],
@@ -395,13 +395,13 @@ CREATE VIEW dbo.companiesNumberOfOrders AS
         C.ClientID,
         C2.CompanyName,
         C2.NIP,
-        ISNULL(cast(C2.KRS as varchar), 'Brak') as [KRS],
-        ISNULL(cast(C2.Regon as varchar), 'Brak') as [Regon],
+        ISNULL(cASt(C2.KRS AS VARCHAR), 'Brak') AS [KRS],
+        ISNULL(cASt(C2.ReGON AS VARCHAR), 'Brak') AS [ReGON],
         C.Phone,
         C.Email,
-        CONCAT(A.CityName, ' ', A.street, ' ', A.LocalNr) as [Adres],
+        CONCAT(A.CityName, ' ', A.street, ' ', A.LocalNr) AS [Adres],
         A.PostalCode,
-        COUNT(DISTINCT O.OrderID) AS [Ilość złożonych zamówień]
+        COUNT(DISTINCT O.OrderID) AS [Ilość złożONych zamówień]
     FROM Orders AS O
         INNER JOIN Client C ON C.OrderID = O.OrderID
         INNER JOIN Companies C2 ON C2.ClientID = C.ClientID
@@ -412,43 +412,43 @@ CREATE VIEW dbo.companiesNumberOfOrders AS
             (C.ClientID, YEAR(O.OrderDate))
         )
 GO
---Number of orders companies
+--Number of Orders companies
 
---individual clients who have not paid for their orders (klienci indywidualni, którzy mają nieopłacone zamówienia oraz jaka jest ich należność)
-CREATE VIEW dbo.individualClientsWhoNotPayForOrders AS
+--individual clients who have not paid fOR their Orders (klienci indywidualni, którzy mają nieopłacONe zamówienia ORaz jaka jest ich należność)
+CREATE VIEW dbo.individualClientsWhONotPayFOROrders AS
     SELECT
         C.ClientID,
-        CONCAT(P.LastName, ' ', P.FirstName) as [Dane],
+        CONCAT(P.LastName, ' ', P.FirstName) AS [Dane],
         C.Phone,
         C.Email,
-        concat(A.CityName, ' ',A.street,' ', A.LocalNr) as [Adres],
+        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) AS [Adres],
         A.PostalCode,
         C.OrderDate,
         SUM(O.OrderSum) AS [Zaległa należność]
     FROM Clients AS C
     WHERE (PS.PaymentStatusName LIKE 'Unpaid')
         INNER JOIN IndividualClient IC ON IC.ClientID = C.ClientID
-        INNER JOIN Person P ON P.PersonID = IndividualClient.PersonID
+        INNER JOIN PersON P ON P.PersONID = IndividualClient.PersONID
         INNER JOIN Orders O ON O.ClientID = C.ClientID
         INNER JOIN PaymentStatus PS ON PS.PaymentStatusID = O.PaymentStatusID
         INNER JOIN Adress A ON A.AdressID = C.AdressID
     GROUP BY C.ClientID
 GO
---individual clients who have not paid for their orders
+--individual clients who have not paid fOR their Orders
 
 
 
---companies who have not paid for their orders  (firmy, które mają nieopłacone zamówienia oraz jaka jest ich wartość)
-CREATE VIEW dbo.companiesWhoNotPayForOrders AS
+--companies who have not paid fOR their Orders  (firmy, które mają nieopłacONe zamówienia ORaz jaka jest ich wartość)
+CREATE VIEW dbo.companiesWhONotPayFOROrders AS
     SELECT
         C.ClientID,
         C2.CompanyName,
         C2.NIP,
-        ISNULL(C2.KRS, 'Brak') as [KRS],
-        ISNULL(C2.Regon, 'Brak') as [Regon],
+        ISNULL(C2.KRS, 'Brak') AS [KRS],
+        ISNULL(C2.ReGON, 'Brak') AS [ReGON],
         C.Phone,
         C.Email,
-        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) as [Adres],
+        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) AS [Adres],
         A.PostalCode,
         SUM(O.OrderSum) AS [Zaległa należność]
     FROM Clients AS C
@@ -458,10 +458,10 @@ CREATE VIEW dbo.companiesWhoNotPayForOrders AS
         INNER JOIN PaymentStatus PS ON PS.PaymentStatusID = O.PaymentStatusID
     GROUP BY C.ClientID
 GO
---companies who have not paid for their orders
+--companies who have not paid fOR their Orders
 
---orders on-site             (zamówienia na miejscu, które są przygotowywane)
-CREATE VIEW dbo.ordersonSite AS
+--Orders ON-site             (zamówienia na miejscu, które są przyGOtowywane)
+CREATE VIEW dbo.OrdersONSite AS
     SELECT
         O.OrderID,
         O.ClientID,
@@ -475,9 +475,9 @@ CREATE VIEW dbo.ordersonSite AS
         INNER JOIN Products P ON P.ProductID = OD.ProductID
     WHERE (O.TakeawayID IS NULL) AND (O.OrderStatus LIKE 'accepted')
 GO
---orders in progress
+--Orders in progress
 
---takeaway orders in progress      (zamówienia na wynos, które są przygotowywane dla klientów indywidualnych)
+--takeaway Orders in progress      (zamówienia na wynos, które są przyGOtowywane dla klientów indywidualnych)
 
 CREATE VIEW dbo.takeawayOrdersInProgressIndividual AS
     SELECT
@@ -485,23 +485,23 @@ CREATE VIEW dbo.takeawayOrdersInProgressIndividual AS
         O.ClientID,
         C.Phone,
         C.Email,
-        concat(P.LastName, ' ', P.FirstName) as [Dane],
+        CONCAT(P.LastName, ' ', P.FirstName) AS [Dane],
         OD.Quantity,
         P.Name,
         OT.PrefDate
     FROM Orders
         INNER JOIN Clients C ON C.OrderID = O.OrderID
         INNER JOIN IndividualClient IC ON IC.ClientID = C.ClientID
-        INNER JOIN Person P ON P.PersonID = IC.PersonID
+        INNER JOIN PersON P ON P.PersONID = IC.PersONID
         INNER JOIN OrderDetails OD ON OD.OrderID = O.OrderID
         INNER JOIN Products P ON P.ProductID = OD.ProductID
         INNER JOIN OrdersTakeaway OT ON OT.TakeawayID = O.TakeawayID
     WHERE  (O.OrderStatus LIKE 'accepted')
 GO
 
---takeaway orders in progress
+--takeaway Orders in progress
 
---takeaway orders in progress      (zamówienia na wynos, które są przygotowywane dla klientów indywidualnych)
+--takeaway Orders in progress      (zamówienia na wynos, które są przyGOtowywane dla klientów indywidualnych)
 
 CREATE VIEW dbo.takeawayOrdersInProgressCompanies AS
     SELECT
@@ -511,8 +511,8 @@ CREATE VIEW dbo.takeawayOrdersInProgressCompanies AS
         C.Email,
         C2.CompanyName,
         C2.NIP,
-        ISNULL(cast(C2.KRS as varchar), 'Brak') as [KRS],
-        ISNULL(cast(C2.Regon as varchar), 'Brak') as [Regon],
+        ISNULL(cASt(C2.KRS AS VARCHAR), 'Brak') AS [KRS],
+        ISNULL(cASt(C2.ReGON AS VARCHAR), 'Brak') AS [ReGON],
         OD.Quantity,
         P.Name,
         OT.PrefDate
@@ -525,10 +525,10 @@ CREATE VIEW dbo.takeawayOrdersInProgressCompanies AS
     WHERE  (O.OrderStatus LIKE 'accepted')
 GO
 
---takeaway orders in progress
+--takeaway Orders in progress
 
---orders for individual clients information - (infromacje o zamówieniach dla klientów indywidualnych)
-CREATE VIEW dbo.ordersInformationIndividualClient AS
+--Orders fOR individual clients infORmatiON - (inFROMacje o zamówieniach dla klientów indywidualnych)
+CREATE VIEW dbo.OrdersInfORmatiONIndividualClient AS
     SELECT
         O.OrderID,
         O.OrderStatus,
@@ -536,22 +536,22 @@ CREATE VIEW dbo.ordersInformationIndividualClient AS
         SUM(O.OrderSum) AS [Wartość zamówienia],
         C.Phone,
         C.Email,
-        CONCAT(P.LastName, ' ',P.FirstName) as [Dane],
-        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) as [Adres],
+        CONCAT(P.LastName, ' ',P.FirstName) AS [Dane],
+        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) AS [Adres],
         A.PostalCode,
     FROM Orders AS O
         INNER JOIN PaymentStatus PS ON PS.PaymentStatusID = O.PaymentStatusID
         INNER JOIN Clients C ON C.ClientID = O.ClientID
         INNER JOIN IndividualClient IC ON IC.ClientID = C.ClientID
-        INNER JOIN Person P ON P.PersonID = P.IndividualClient
+        INNER JOIN PersON P ON P.PersONID = P.IndividualClient
         INNER JOIN Adress A ON A.AdressID = C.AdressID
         INNER JOIN
     GROUP BY O.OrderID
 GO
---orders for individual clients information
+--Orders fOR individual clients infORmatiON
 
---orders for company information - (informacje o zamówieniach dla firm)
-CREATE VIEW dbo.ordersInformationCompany AS
+--Orders fOR company infORmatiON - (infORmacje o zamówieniach dla firm)
+CREATE VIEW dbo.OrdersInfORmatiONCompany AS
     SELECT
         O.OrderID,
         O.OrderStatus,
@@ -561,9 +561,9 @@ CREATE VIEW dbo.ordersInformationCompany AS
         C.Email,
         C2.CompanyName,
         C2.NIP,
-        ISNULL(cast(C2.KRS as varchar), 'Brak') as [KRS],
-        ISNULL(cast(C2.Regon as varchar), 'Brak') as [Regon],
-        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) as [Adres],
+        ISNULL(cASt(C2.KRS AS VARCHAR), 'Brak') AS [KRS],
+        ISNULL(cASt(C2.ReGON AS VARCHAR), 'Brak') AS [ReGON],
+        CONCAT(A.CityName, ' ',A.street,' ', A.LocalNr) AS [Adres],
         A.PostalCode,
     FROM Orders AS O
         INNER JOIN PaymentStatus PS ON PS.PaymentStatusID = O.PaymentStatusID
@@ -573,7 +573,7 @@ CREATE VIEW dbo.ordersInformationCompany AS
         INNER JOIN
     GROUP BY O.OrderID
 GO
---orders for company information
+--Orders fOR company infORmatiON
 
 -- PendingReservation Companies--
 
@@ -581,10 +581,10 @@ CREATE VIEW dbo.PendingReservationsCompanies AS
     SELECT R.ReservationID, startDate, endDate,
            OrderID, OrderSum
     FROM Reservation R
-        inner join ReservationCompany RC on RC.ReservationID = R.ReservationID
-        inner join Orders O on R.ReservationID = O.ReservationID
+        INNER JOIN ReservationCompany RC ON RC.ReservationID = R.ReservationID
+        INNER JOIN Orders O ON R.ReservationID = O.ReservationID
     WHERE Status LIKE 'Pending'
-go
+GO
 
 -- PendingReservation Companies--
 
@@ -594,97 +594,97 @@ CREATE VIEW dbo.PendingReservationsIndividual AS
     SELECT R.ReservationID, startDate, endDate,
            OrderID, OrderSum
     FROM Reservation R
-        inner join ReservationIndividual RC on RC.ReservationID = R.ReservationID
-        inner join Orders O on R.ReservationID = O.ReservationID
+        INNER JOIN ReservationIndividual RC ON RC.ReservationID = R.ReservationID
+        INNER JOIN Orders O ON R.ReservationID = O.ReservationID
     WHERE Status LIKE 'Pending'
-go
+GO
 
--- Reservation accepted by --
-create view dbo.ReservationAcceptedBy as
-    select concat(LastName, ' ',FirstName) as Dane, Position, Email, Phone
-    from Staff
-        inner join Reservation R2 on Staff.StaffID = R2.StaffID
-    where Status like 'accepted'
-go
--- Reservation accepted by --
+-- Reservation accepted BY --
+CREATE VIEW dbo.ReservationAcceptedBY AS
+    SELECT CONCAT(LastName, ' ',FirstName) AS Dane, PositiON, Email, Phone
+    FROM Staff
+        INNER JOIN Reservation R2 ON Staff.StaffID = R2.StaffID
+    WHERE Status LIKE 'accepted'
+GO
+-- Reservation accepted BY --
 
 -- Reservation summary --
 
-create view dbo.ReservationSummary as
-    select
-        O.ClientID as 'Numer clienta',
+CREATE VIEW dbo.ReservationSummary AS
+    SELECT
+        O.ClientID AS 'Numer clienta',
         startDate,
         endDate,
-        convert(TIME,endDate - startDate , 108) as 'Czas trwania',
+        CONVERT(TIME,endDate - startDate , 108) AS 'CzAS trwania',
         O.OrderSum,
         O.OrderDate,
         O.OrderCompletionDate,
         OD.Quantity,
         RD.TableID
-    from Reservation
-        inner join Orders O on Reservation.ReservationID = O.ReservationID
-        inner join OrderDetails OD on O.OrderID = OD.OrderID
-        inner join ReservationCompany RC on Reservation.ReservationID = RC.ReservationID
-        inner join ReservationDetails RD on RC.ReservationID = RD.ReservationID
-    where Status not like 'denied'
-union
-    select
-        O.ClientID as 'Numer clienta',
+    FROM Reservation
+        INNER JOIN Orders O ON Reservation.ReservationID = O.ReservationID
+        INNER JOIN OrderDetails OD ON O.OrderID = OD.OrderID
+        INNER JOIN ReservationCompany RC ON Reservation.ReservationID = RC.ReservationID
+        INNER JOIN ReservationDetails RD ON RC.ReservationID = RD.ReservationID
+    WHERE Status NOT LIKE 'denied'
+UNION
+    SELECT
+        O.ClientID AS 'Numer clienta',
         startDate,
         endDate,
-        convert(TIME,endDate - startDate , 108) as 'Czas trwania',
+        CONVERT(TIME,endDate - startDate , 108) AS 'CzAS trwania',
         O.OrderSum,
         O.OrderDate,
         O.OrderCompletionDate,
         OD.Quantity,
         RD.TableID
-    from Reservation
-        inner join Orders O on Reservation.ReservationID = O.ReservationID
-        inner join OrderDetails OD on O.OrderID = OD.OrderID
-        inner join ReservationIndividual RC on Reservation.ReservationID = RC.ReservationID
-        inner join ReservationDetails RD on RC.ReservationID = RD.ReservationID
-    where Status not like 'denied'
+    FROM Reservation
+        INNER JOIN Orders O ON Reservation.ReservationID = O.ReservationID
+        INNER JOIN OrderDetails OD ON O.OrderID = OD.OrderID
+        INNER JOIN ReservationIndividual RC ON Reservation.ReservationID = RC.ReservationID
+        INNER JOIN ReservationDetails RD ON RC.ReservationID = RD.ReservationID
+    WHERE Status NOT LIKE 'denied'
 
-go
+GO
 
 -- Reservation summary --
 
 -- Products summary Daily --
 
-create view dbo.ProductsSummaryDaily as
-    select P.Name, P.Description, cast(O.OrderDate as DATE) as 'Dzien', count(OD.ProductID) as 'Liczba zamowionych produktow'
-    from Products P
-        inner join OrderDetails OD on P.ProductID = OD.ProductID
-        inner join Orders O on OD.OrderID = O.OrderID
-    where O.OrderStatus not like 'denied'
-        group by P.Name, P.Description, cast(O.OrderDate as DATE)
-go
+CREATE VIEW dbo.ProductsSummaryDaily AS
+    SELECT P.Name, P.Description, cASt(O.OrderDate AS DATE) AS 'Dzien', COUNT(OD.ProductID) AS 'Liczba zamowiONych produktow'
+    FROM Products P
+        INNER JOIN OrderDetails OD ON P.ProductID = OD.ProductID
+        INNER JOIN Orders O ON OD.OrderID = O.OrderID
+    WHERE O.OrderStatus NOT LIKE 'denied'
+        GROUP BY P.Name, P.Description, cASt(O.OrderDate AS DATE)
+GO
 
 -- Products summary Daily --
 
 -- Products summary  weekly --
 
-create view dbo.ProductsSummaryWeekly as
-    select P.Name, P.Description, DATEPART(iso_week ,cast(O.OrderDate as DATE)) as 'Tydzien', DATEPART(YEAR, cast(O.OrderDate as DATE)) as 'Rok', count(OD.ProductID) as 'Liczba produktow'
-    from Products P
-        inner join OrderDetails OD on P.ProductID = OD.ProductID
-        inner join Orders O on OD.OrderID = O.OrderID
-    where O.OrderStatus not like 'denied'
-        group by P.Name, P.Description, DATEPART(iso_week  ,cast(O.OrderDate as DATE)), DATEPART(YEAR, cast(O.OrderDate as DATE))
-go
+CREATE VIEW dbo.ProductsSummaryWeekly AS
+    SELECT P.Name, P.Description, DATEPART(ISo_week ,cASt(O.OrderDate AS DATE)) AS 'Tydzien', DATEPART(YEAR, cASt(O.OrderDate AS DATE)) AS 'Rok', COUNT(OD.ProductID) AS 'Liczba produktow'
+    FROM Products P
+        INNER JOIN OrderDetails OD ON P.ProductID = OD.ProductID
+        INNER JOIN Orders O ON OD.OrderID = O.OrderID
+    WHERE O.OrderStatus NOT LIKE 'denied'
+        GROUP BY P.Name, P.Description, DATEPART(ISo_week  ,cASt(O.OrderDate AS DATE)), DATEPART(YEAR, cASt(O.OrderDate AS DATE))
+GO
 
 -- Products summary  weekly --
 
 -- Products summary Monthly --
 
-create view dbo.ProductsSummaryMonthly as
-    select P.Name, P.Description, DATEPART(MONTH ,cast(O.OrderDate as DATE)) as 'Miesiac', DATEPART(YEAR, cast(O.OrderDate as DATE)) as 'Rok', count(OD.ProductID) as  'Liczba zamowionych produktow'
-    from Products P
-        inner join OrderDetails OD on P.ProductID = OD.ProductID
-        inner join Orders O on OD.OrderID = O.OrderID
-    where O.OrderStatus not like 'denied'
-        group by P.Name, P.Description, DATEPART(MONTH ,cast(O.OrderDate as DATE)), DATEPART(YEAR, cast(O.OrderDate as DATE))
-go
+CREATE VIEW dbo.ProductsSummaryMonthly AS
+    SELECT P.Name, P.Description, DATEPART(MONTH ,cASt(O.OrderDate AS DATE)) AS 'Miesiac', DATEPART(YEAR, cASt(O.OrderDate AS DATE)) AS 'Rok', COUNT(OD.ProductID) AS  'Liczba zamowiONych produktow'
+    FROM Products P
+        INNER JOIN OrderDetails OD ON P.ProductID = OD.ProductID
+        INNER JOIN Orders O ON OD.OrderID = O.OrderID
+    WHERE O.OrderStatus NOT LIKE 'denied'
+        GROUP BY P.Name, P.Description, DATEPART(MONTH ,cASt(O.OrderDate AS DATE)), DATEPART(YEAR, cASt(O.OrderDate AS DATE))
+GO
 
 -- Products summary Monthly --
 
@@ -693,121 +693,120 @@ go
 -- Not reserved Tables --
 
 -- Kto wydał dane zamówienie
-create or alter view dbo.Waiters as
-    select FirstName + ' ' + LastName as Name, OrderID as id
-    from Staff
-             join Orders O on Staff.StaffID = O.staffID
-    where Position = 'waiter'
-       or Position = 'waitress';
-go
+CREATE OR alter VIEW dbo.Waiters AS
+    SELECT FirstName + ' ' + LastName AS Name, OrderID AS id
+    FROM Staff
+             JOIN Orders O ON Staff.StaffID = O.staffID
+    WHERE PositiON = 'waiter'
+       OR PositiON = 'waitress';
+GO
 
 -- Jakie zamówienia są na wynos
-create or alter view dbo.AllTakeaways as
-    select TakeawayID,
+CREATE OR alter VIEW dbo.AllTakeaways AS
+    SELECT TakeawayID,
            PrefDate,
            OrderID,
            ClientID,
            PaymentStatusID,
-           concat(S.LastName, ' ',S.FirstName) as 'Dane kelnera',
-           Position,
+           CONCAT(S.LastName, ' ',S.FirstName) AS 'Dane kelnera',
+           PositiON,
            OrderSum,
            OrderDate,
            OrderCompletionDate,
            OrderStatus
-    from OrdersTakeaways
-            join Orders O on OrdersTakeaways.TakeawaysID = O.TakeawayID
-            join Staff S on O.staffID = S.StaffID
-go
+    FROM OrdersTakeaways
+            JOIN Orders O ON OrdersTakeaways.TakeawaysID = O.TakeawayID
+            JOIN Staff S ON O.staffID = S.StaffID
+GO
 
--- Jakie zamówienia są w trakcie przygotowywania
-create or alter view dbo.OrdersToPrepare as
-    select OrderID, ClientID, TakeawayID, PaymentStatusName, PM.PaymentName,
-           concat(S.LastName, ' ',S.FirstName) as 'Dane kelnera',
+-- Jakie zamówienia są w trakcie przyGOtowywania
+CREATE OR alter VIEW dbo.OrdersToPrepare AS
+    SELECT OrderID, ClientID, TakeawayID, PaymentStatusName, PM.PaymentName,
+           CONCAT(S.LastName, ' ',S.FirstName) AS 'Dane kelnera',
             OrderSum, OrderDate, PrefDate
-    from Orders join OrdersTakeaways OT on Orders.TakeawayID = OT.TakeawaysID
-        inner join PaymentStatus PS on PS.PaymentStatusID = Orders.PaymentStatusID
-        inner join PaymentMethods PM on PS.PaymentMethodID = PM.PaymentMethodID
-        inner join Staff S on Orders.staffID = S.StaffID
-    where ((OrderCompletionDate is null and (getdate() >= OrderDate)) and OrderStatus = 'pending')
-go
+    FROM Orders JOIN OrdersTakeaways OT ON Orders.TakeawayID = OT.TakeawaysID
+        INNER JOIN PaymentStatus PS ON PS.PaymentStatusID = Orders.PaymentStatusID
+        INNER JOIN PaymentMethods PM ON PS.PaymentMethodID = PM.PaymentMethodID
+        INNER JOIN Staff S ON Orders.staffID = S.StaffID
+    WHERE ((OrderCompletionDate IS NULL AND (GETDATE() >= OrderDate)) AND OrderStatus = 'pending')
+GO
 
--- Ile jest zamówień które będą realizowane jako owoce morza i które to są grupowane po klientach
-create or alter view dbo.SeeFoodOrdersByClient as
-    select count(OD.OrderID) as 'Liczba zamowien z owocami morza', Orders.OrderID
-    from Orders
-        join OrderDetails OD on Orders.OrderID = OD.OrderID
-        join Products P on P.ProductID = OD.ProductID join Category C on C.CategoryID = P.CategoryID
-    where CategoryName='sea food' and (OrderStatus not like 'denied') and ( (OrderCompletionDate is null and (getdate() >= OrderDate)))
-    group by CategoryName, Orders.OrderID
-go
+-- Ile jest zamówień które będą realizowane jako owoce mORza i które to są grupowane po klientach
+CREATE OR alter VIEW dbo.SeeFoodOrdersBYClient AS
+    SELECT COUNT(OD.OrderID) AS 'Liczba zamowien z owocami mORza', Orders.OrderID
+    FROM Orders
+        JOIN OrderDetails OD ON Orders.OrderID = OD.OrderID
+        JOIN Products P ON P.ProductID = OD.ProductID JOIN Category C ON C.CategoryID = P.CategoryID
+    WHERE CategoryName='sea food' AND (OrderStatus NOT LIKE 'denied') AND ( (OrderCompletionDate IS NULL AND (GETDATE() >= OrderDate)))
+    GROUP BY CategoryName, Orders.OrderID
+GO
 
--- Ile jest zamówień które będą realizowane jako owoce morza i które to są 
-create or alter view dbo.SeeFoodOrders as
-    select count(OD.OrderID) as 'Liczba zamowien z owocami morza'
-    from Orders
-        join OrderDetails OD on Orders.OrderID = OD.OrderID
-        join Products P on P.ProductID = OD.ProductID join Category C on C.CategoryID = P.CategoryID
-    where CategoryName='sea food' and (OrderStatus not like 'denied') and ( (OrderCompletionDate is null and (getdate() >= OrderDate)))
-    group by CategoryName
-go
+-- Ile jest zamówień które będą realizowane jako owoce mORza i które to są 
+CREATE OR alter VIEW dbo.SeeFoodOrders AS
+    SELECT COUNT(OD.OrderID) AS 'Liczba zamowien z owocami mORza'
+    FROM Orders
+        JOIN OrderDetails OD ON Orders.OrderID = OD.OrderID
+        JOIN Products P ON P.ProductID = OD.ProductID JOIN Category C ON C.CategoryID = P.CategoryID
+    WHERE CategoryName='sea food' AND (OrderStatus NOT LIKE 'denied') AND ( (OrderCompletionDate IS NULL AND (GETDATE() >= OrderDate)))
+    GROUP BY CategoryName
+GO
 
 
--- Aktualnie nałożone zniżki na klientów
-create or alter view CurrentDiscounts as
-    select FirstName,LastName, IC.ClientID, DiscountID, AppliedDate, startDate, endDate, DiscountType,
-           DiscountValue, MinimalOrders, MinimalAggregateValue, ValidityPeriod
-    from DiscountsVar join Discounts on DiscountsVar.VarID = Discounts.VarID
-        join IndividualClient IC on Discounts.ClientID = IC.ClientID
-        join Person P on P.PersonID = IC.PersonID
-    where (((getdate() >= startDate) and (getdate() <= endDate)) or ((getdate() >= startDate) and (endDate is null)))
-go
+-- Aktualnie nałożONe zniżki na klientów
+CREATE OR alter VIEW CurrentDISCOUNTs AS
+    SELECT FirstName,LastName, IC.ClientID, DISCOUNTID, AppliedDate, startDate, endDate, DISCOUNTType,
+           DISCOUNTValue, MinimalOrders, MinimalAggregateValue, ValidityPeriod
+    FROM DISCOUNTsVar JOIN DISCOUNTs ON DISCOUNTsVar.VarID = DISCOUNTs.VarID
+        JOIN IndividualClient IC ON DISCOUNTs.ClientID = IC.ClientID
+        JOIN PersON P ON P.PersONID = IC.PersONID
+    WHERE (((GETDATE() >= startDate) AND (GETDATE() <= endDate)) OR ((GETDATE() >= startDate) AND (endDate IS NULL)))
+GO
 
--- informacje na temat wszystkich przyznanych zniżek
-create or alter view AllDiscounts as
-    select IC.PersonID, LastName, FirstName,IC.ClientID, DiscountsVar.VarID, DiscountType, MinimalOrders, MinimalAggregateValue, ValidityPeriod, DiscountValue, startDate, endDate, DiscountID, AppliedDate
-    from DiscountsVar 
-        join Discounts on DiscountsVar.VarID = Discounts.VarID 
-        join IndividualClient IC on Discounts.ClientID = IC.ClientID 
-        join Person P on P.PersonID = IC.PersonID
-go
--- Dania wymagane na dzisiaj na wynos
+-- infORmacje na temat wszystkich przyznanych zniżek
+CREATE OR alter VIEW AllDISCOUNTs AS
+    SELECT IC.PersONID, LastName, FirstName,IC.ClientID, DISCOUNTsVar.VarID, DISCOUNTType, MinimalOrders, MinimalAggregateValue, ValidityPeriod, DISCOUNTValue, startDate, endDate, DISCOUNTID, AppliedDate
+    FROM DISCOUNTsVar 
+        JOIN DISCOUNTs ON DISCOUNTsVar.VarID = DISCOUNTs.VarID 
+        JOIN IndividualClient IC ON DISCOUNTs.ClientID = IC.ClientID 
+        JOIN PersON P ON P.PersONID = IC.PersONID
+GO
+-- Dania wymagane na dzISiaj na wynos
 
-create or alter view DishesInProgressTakeaways as
-    select  Name, count(Products.ProductID) as 'Liczba zamowien', sum(Quantity) as 'Liczba sztuk'
-    from Products join OrderDetails OD on Products.ProductID = OD.ProductID
-        join Orders on OD.OrderID = Orders.OrderID
-        join OrdersTakeaways OT on Orders.TakeawayID = OT.TakeawaysID
-    where (((getdate() >= OrderDate) and (getdate() <= OrderCompletionDate)))
-      and (Orders.OrderStatus not like 'denied' or Orders.OrderStatus not like 'cancelled')
-    group by Name
-go
+CREATE OR alter VIEW DIShesInProgressTakeaways AS
+    SELECT  Name, COUNT(Products.ProductID) AS 'Liczba zamowien', sum(Quantity) AS 'Liczba sztuk'
+    FROM Products JOIN OrderDetails OD ON Products.ProductID = OD.ProductID
+        JOIN Orders ON OD.OrderID = Orders.OrderID
+        JOIN OrdersTakeaways OT ON Orders.TakeawayID = OT.TakeawaysID
+    WHERE (((GETDATE() >= OrderDate) AND (GETDATE() <= OrderCompletionDate)))
+      AND (Orders.OrderStatus NOT LIKE 'denied' OR Orders.OrderStatus NOT LIKE 'cancelled')
+    GROUP BY Name
+GO
 
--- Dania wymagane na dzisiaj w rezerwacji
-create or alter view DishesInProgressReservation as
-    select Name, count(Products.ProductID) as 'Liczba zamowien', sum(Quantity) as 'Liczba sztuk'
-    from Products
-        join OrderDetails OD on Products.ProductID = OD.ProductID
-        join Orders on OD.OrderID = Orders.OrderID
-        join Reservation R2 on Orders.ReservationID = R2.ReservationID
-    where (((getdate() >= OrderDate) and (getdate() <= OrderCmpletionDate)))
-      and Orders.OrderStatus not like 'denied' and (R2.Status not like 'denied' or R2.Status not like 'cancelled')
-    group by Name
-go
--- Products informations --
-
-create view dbo.ProductsInformations as
-    select Name, P.Description, CategoryName, IIF(IsAvailable = 1, 'Aktywne', 'Nieaktywne') as 'Czy produkt aktywny',
-           IIF(P.ProductID in (select ProductID
-                            from Menu
-                            where ((startDate >= getdate()) and (endDate >= getdate()))
-                                or ((startDate >= getdate()) and endDate is null) and P.ProductID = Menu.ProductID),
-               'Aktualnie w menu', 'Nie jest w menu') as 'Czy jest aktualnie w menu', count(OD.ProductID) as 'Ilosc zamowien danego produktu'
-   from Products P
-        inner join Category C on C.CategoryID = P.CategoryID
-        inner join OrderDetails OD on P.ProductID = OD.ProductID
-    group by Name, P.Description, CategoryName, P.ProductID, IsAvailable
-go
+-- Dania wymagane na dzISiaj w rezerwacji
+CREATE OR alter VIEW DIShesInProgressReservation AS
+    SELECT Name, COUNT(Products.ProductID) AS 'Liczba zamowien', sum(Quantity) AS 'Liczba sztuk'
+    FROM Products
+        JOIN OrderDetails OD ON Products.ProductID = OD.ProductID
+        JOIN Orders ON OD.OrderID = Orders.OrderID
+        JOIN Reservation R2 ON Orders.ReservationID = R2.ReservationID
+    WHERE (((GETDATE() >= OrderDate) AND (GETDATE() <= OrderCmpletiONDate)))
+      AND Orders.OrderStatus NOT LIKE 'denied' AND (R2.Status NOT LIKE 'denied' OR R2.Status NOT LIKE 'cancelled')
+    GROUP BY Name
+GO
 
 -- Products informations --
 
+CREATE VIEW dbo.dbo.ProductsInformations AS
+    SELECT Name, P.Description, CategoryName, IIF(IsAvailable = 1, 'Aktywne', 'Nieaktywne') AS 'Czy produkt aktywny',
+           IIF(P.ProductID in (SELECT ProductID
+                            FROM Menu
+                            WHERE ((startDate >= GETDATE()) AND (endDate >= GETDATE()))
+                                OR ((startDate >= GETDATE()) AND endDate IS NULL) AND P.ProductID = Menu.ProductID),
+               'Aktualnie w menu', 'Nie jest w menu') AS 'Czy jest aktualnie w menu', COUNT(OD.ProductID) AS 'Ilosc zamowien daneGO produktu'
+   FROM Products P
+        INNER JOIN Category C ON C.CategoryID = P.CategoryID
+        INNER JOIN OrderDetails OD ON P.ProductID = OD.ProductID
+    GROUP BY Name, P.Description, CategoryName, P.ProductID, IsAvailable
+GO
 
+-- Products informations --
