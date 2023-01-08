@@ -2,12 +2,16 @@
 -- Trigger ten blokuje zamówienia, które ze względu na znajdujące się w nim owoce
 -- morza, winno być złożone maksymalnie do poniedziałku poprzedzającego
 -- zamówienie.
-CREATE FUNCTION SeaFoodInTime (@PrefDate datetime,@TakeawyTime datetime,@ReservationTime datetime,@DayName nvarchar,@Days int ) RETURNS bit AS
+CREATE FUNCTION SeaFoodInTime (@PrefDate datetime, @TakeawayTime datetime,@ReservationTime datetime,@DayName nvarchar,@Days int ) RETURNS bit AS
 BEGIN
-    DECLARE @Y datetime =@TakeawyTime
-    if @TakeawyTime is null:@Y=@ReservationTime
-    RETURN DATENAME(WEEKDAY, @PrefDate) LIKE @DayName AND DATEDIFF(DAY, @PrefDate, @Y) <= @Days
+    DECLARE @Y datetime = @TakeawayTime
+    if @TakeawayTime is null
+        BEGIN;
+           SET @Y = @ReservationTime
+        END
+    RETURN IIF(DATENAME(WEEKDAY, @PrefDate) LIKE @DayName AND DATEDIFF(DAY, @PrefDate, @Y) <= @Days, 1, 0)
 END
+
 CREATE TRIGGER SeaFoodCheckMonday
     ON OrderDetails
 AFTER INSERT
@@ -25,9 +29,9 @@ AS BEGIN
         INNER JOIN Reservation R2 on O.ReservationID = R2.ReservationID
 
         WHERE CategoryID = @CategoryID AND
-              SeaFoodInTime(O.OrderDate,OT.PrefDate,  R2.startDate, 2, 'Thursday')
-           OR SeaFoodInTime(O.OrderDate,OT.PrefDate,  R2.startDate, 3, 'Friday')
-           OR SeaFoodInTime(O.OrderDate,OT.PrefDate,  R2.startDate, 4, 'Saturday')
+              dbo.SeaFoodInTime(O.OrderDate,OT.PrefDate,  R2.startDate, 2, 'Thursday') = 1
+           OR dbo.SeaFoodInTime(O.OrderDate,OT.PrefDate,  R2.startDate, 3, 'Friday') = 1
+           OR dbo.SeaFoodInTime(O.OrderDate,OT.PrefDate,  R2.startDate, 4, 'Saturday') = 1
         )
 
         BEGIN;
